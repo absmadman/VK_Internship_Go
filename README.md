@@ -1,2 +1,2 @@
-# VK_Internship_Go
-Задание в рамках отбора на стажировку в VK
+# Pet_Rest
+REST API service implementation Go

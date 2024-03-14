@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:14.8-alpine3.18
+    environment:
+      POSTGRES_DB: "userdb"
+      POSTGRES_USER: "server"
+      POSTGRES_PASSWORD: "server"
+      PGDATA: "/Users/heartsfi/VK_Internship_Go/sql" # dont forget to change to absolute path
+    volumes:
+      - user-data:/User/heartsfi/VK_Internship_Go/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  user-data:
