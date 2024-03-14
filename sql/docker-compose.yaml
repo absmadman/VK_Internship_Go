@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: "server"
       PGDATA: "/Users/heartsfi/VK_Internship_Go/sql" # dont forget to change to absolute path
     volumes:
-      - user-data:/User/heartsfi/VK_Internship_Go/data
+      - user-data:/Users/heartsfi/VK_Internship_Go/data
     ports:
       - "5432:5432"
 

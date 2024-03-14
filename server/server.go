@@ -3,7 +3,6 @@ package server
 import (
 	sqlpkg "VK_Internship_Go/sql"
 	"database/sql"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 )
@@ -13,20 +12,8 @@ import (
 // net/url
 // "github.com/braintree/manners"
 
-// localhost:8080/user
-type User struct {
-	Name    string  `json:"name"`
-	Balance float64 `json:"balance"`
-}
-
-//localhost:8080/quest
-type Quest struct { // мб сделать из этого интерфейс
-	Name string  `json:"name"`
-	Cost float64 `json:"cost"`
-}
-
 type Item interface {
-	AppendDatabase(db *sql.DB)
+	AppendDatabase(db *sql.DB) error
 }
 
 type Rout struct {
@@ -34,49 +21,46 @@ type Rout struct {
 	db     *sql.DB
 }
 
-func (u *User) AppendDatabase(db *sql.DB) {
-	response, err := db.Exec("SELECT name FROM users WHERE name = $1", u.Name)
-	if err != nil {
-		return
-	}
-	count, err := response.RowsAffected()
-	if err != nil {
-		return
-	}
-	if count > 0 {
-		log.Println("User already exist")
-		return
-	}
-	response, err = db.Exec("INSERT INTO users (name, balance) VALUES ($1, $2)", u.Name, u.Balance)
-	if err != nil {
-		return
-	}
-	fmt.Println(response)
-}
-
-func (q *Quest) AppendDatabase(db *sql.DB) {
-	response, err := db.Exec("INSERT INTO quests (name, cost) VALUES ($1, $2)", q.Name, q.Cost)
-	if err != nil {
-		return
-	}
-	fmt.Println(response)
-}
-
 func (rt *Rout) UserPost(cont *gin.Context) {
-	var u User
+	var u sqlpkg.User
 	if err := cont.BindJSON(&u); err != nil {
+		cont.JSON(400, "")
 		return
 	}
-	u.AppendDatabase(rt.db)
+
+	if u.AppendDatabase(rt.db) != nil {
+		cont.JSON(400, "")
+	} else {
+		cont.JSON(200, "")
+	}
 }
 
 func (rt *Rout) QuestPost(cont *gin.Context) {
-	var u User
-	if err := cont.BindJSON(&u); err != nil {
+	var q sqlpkg.Quest
+	if err := cont.BindJSON(&q); err != nil {
+		cont.JSON(400, "")
 		return
 	}
 
-	u.AppendDatabase(rt.db)
+	if q.AppendDatabase(rt.db) != nil {
+		cont.JSON(400, "")
+	} else {
+		cont.JSON(200, "")
+	}
+}
+
+func (rt *Rout) EventPost(cont *gin.Context) {
+	var e sqlpkg.Event
+	if err := cont.BindJSON(&e); err != nil {
+		cont.JSON(200, "")
+		return
+	}
+
+	if e.AppendDatabase(rt.db) != nil {
+		cont.JSON(400, "")
+	} else {
+		cont.JSON(200, "")
+	}
 }
 
 func NewRout(g *gin.Engine, d *sql.DB) *Rout {
@@ -91,6 +75,7 @@ func HttpServer() {
 
 	rout.router.POST("/users", rout.UserPost)
 	rout.router.POST("/quests", rout.QuestPost)
+	rout.router.POST("/event", rout.EventPost)
 
 	err := rout.router.Run("localhost:8080")
 	if err != nil {
