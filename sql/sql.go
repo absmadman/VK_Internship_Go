@@ -14,7 +14,7 @@ type User struct {
 }
 
 // localhost:8080/quest
-type Quest struct { // мб сделать из этого интерфейс
+type Quest struct {
 	Name string  `json:"name"`
 	Cost float64 `json:"cost"`
 }
@@ -203,6 +203,50 @@ func (e *Event) AppendDatabase(db *sql.DB) error {
 		return errors.New("error")
 	}
 
+	return nil
+}
+
+func RemoveUserFromDatabaseById(id int, db *sql.DB) error {
+	res, err := db.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		return errors.New("error removing from database")
+	}
+	if val, _ := res.RowsAffected(); val == 0 {
+		return errors.New("error user is not exist")
+	}
+	return nil
+}
+
+func RemoveUserFromDatabaseByName(name string, db *sql.DB) error {
+	res, err := db.Exec("DELETE FROM users WHERE name = $1", name)
+	if err != nil {
+		return errors.New("error removing from database")
+	}
+	if val, _ := res.RowsAffected(); val == 0 {
+		return errors.New("error user is not exist")
+	}
+	return nil
+}
+
+func RemoveQuestFromDatabaseById(id int, db *sql.DB) error {
+	res, err := db.Exec("DELETE FROM quests WHERE id = $1", id)
+	if err != nil {
+		return errors.New("error removing from database")
+	}
+	if val, _ := res.RowsAffected(); val == 0 {
+		return errors.New("error user is not exist")
+	}
+	return nil
+}
+
+func RemoveQuestFromDatabaseByName(name string, db *sql.DB) error {
+	res, err := db.Exec("DELETE FROM quests WHERE name = $1", name)
+	if err != nil {
+		return errors.New("error removing from database")
+	}
+	if val, _ := res.RowsAffected(); val == 0 {
+		return errors.New("error user is not exist")
+	}
 	return nil
 }
 

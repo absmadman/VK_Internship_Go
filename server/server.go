@@ -145,13 +145,16 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 	u.Name = ""
 	if err := cont.BindJSON(&u); err != nil {
 		cont.JSON(400, gin.H{"message": "error binding json"})
+		return
 	}
 	id, err := strconv.Atoi(cont.Param("id"))
 	if err != nil {
 		cont.JSON(400, gin.H{"message": "error param type"})
+		return
 	}
 	if err = u.UpdateDatabaseById(id, rt.db); err != nil {
 		cont.JSON(400, gin.H{"message": "error sql execution"})
+		return
 	}
 	cont.JSON(200, gin.H{"message": "ok"})
 
@@ -163,10 +166,12 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 	u.Name = ""
 	if err := cont.BindJSON(&u); err != nil {
 		cont.JSON(400, gin.H{"message": "error binding json"})
+		return
 	}
 	name := cont.Param("name")
 	if err := u.UpdateDatabaseByName(name, rt.db); err != nil {
 		cont.JSON(400, gin.H{"message": "error sql execution"})
+		return
 	}
 	cont.JSON(200, gin.H{"message": "ok"})
 
@@ -175,6 +180,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 func (rt *Rout) ItemUpdateDatabaseById(cont *gin.Context, id int, i Item) {
 	if err := i.UpdateDatabaseById(id, rt.db); err != nil {
 		cont.JSON(400, gin.H{"message": "error sql execution"})
+		return
 	}
 	cont.JSON(200, gin.H{"message": "ok"})
 }
@@ -185,16 +191,18 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 	q.Name = ""
 	if err := cont.BindJSON(&q); err != nil {
 		cont.JSON(400, gin.H{"message": "error binding json"})
+		return
 	}
 	id, err := strconv.Atoi(cont.Param("id"))
 	if err != nil {
 		cont.JSON(400, gin.H{"message": "error param type"})
+		return
 	}
 	if err = q.UpdateDatabaseById(id, rt.db); err != nil {
 		cont.JSON(400, gin.H{"message": "error sql execution"})
+		return
 	}
 	cont.JSON(200, gin.H{"message": "ok"})
-
 }
 
 func (rt *Rout) QuestPutByName(cont *gin.Context) {
@@ -203,13 +211,58 @@ func (rt *Rout) QuestPutByName(cont *gin.Context) {
 	q.Name = ""
 	if err := cont.BindJSON(&q); err != nil {
 		cont.JSON(400, gin.H{"message": "error binding json"})
+		return
 	}
 	name := cont.Param("name")
 	if err := q.UpdateDatabaseByName(name, rt.db); err != nil {
 		cont.JSON(400, gin.H{"message": "error sql execution"})
+		return
 	}
 	cont.JSON(200, gin.H{"message": "ok"})
+}
 
+func (rt *Rout) UserDeleteById(cont *gin.Context) {
+	id, err := strconv.Atoi(cont.Param("id"))
+	if err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	if err = sqlpkg.RemoveUserFromDatabaseById(id, rt.db); err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	cont.JSON(200, gin.H{"message": "ok"})
+}
+
+func (rt *Rout) UserDeleteByName(cont *gin.Context) {
+	name := cont.Param("name")
+	if err := sqlpkg.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	cont.JSON(200, gin.H{"message": "ok"})
+}
+
+func (rt *Rout) QuestDeleteById(cont *gin.Context) {
+	id, err := strconv.Atoi(cont.Param("id"))
+	if err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	if err = sqlpkg.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	cont.JSON(200, gin.H{"message": "ok"})
+}
+
+func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
+	name := cont.Param("name")
+	if err := sqlpkg.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
+		cont.JSON(400, gin.H{"message": "error param type"})
+		return
+	}
+	cont.JSON(200, gin.H{"message": "ok"})
 }
 
 func HttpServer() {
@@ -229,6 +282,11 @@ func HttpServer() {
 	rout.router.PUT("/users/name/:name", rout.UserPutByName)
 	rout.router.PUT("/quests/id/:id", rout.QuestPutById)
 	rout.router.PUT("/quests/name/:name", rout.QuestPutByName)
+
+	rout.router.DELETE("/users/id/:id", rout.UserDeleteById)
+	rout.router.DELETE("/users/name/:name", rout.UserDeleteByName)
+	rout.router.DELETE("/quests/id/:id", rout.QuestDeleteById)
+	rout.router.DELETE("/quests/name/:name", rout.QuestDeleteByName)
 
 	err := rout.router.Run("localhost:8080")
 	if err != nil {
