@@ -58,6 +58,38 @@ func (u *User) AppendDatabase(db *sql.DB) error {
 	return nil
 }
 
+func (u *User) GetById(id int, db *sql.DB) error {
+	err := db.QueryRow("SELECT name, balance FROM users WHERE id = $1", id).Scan(&u.Name, &u.Balance)
+	if err != nil {
+		return errors.New("error query")
+	}
+	return nil
+}
+
+func (u *User) GetByName(name string, db *sql.DB) error {
+	err := db.QueryRow("SELECT name, balance FROM users WHERE name = $1", name).Scan(&u.Name, &u.Balance)
+	if err != nil {
+		return errors.New("error query")
+	}
+	return nil
+}
+
+func (q *Quest) GetById(id int, db *sql.DB) error {
+	err := db.QueryRow("SELECT name, cost FROM quests WHERE id = $1", id).Scan(&q.Name, &q.Cost)
+	if err != nil {
+		return errors.New("error query")
+	}
+	return nil
+}
+
+func (q *Quest) GetByName(name string, db *sql.DB) error {
+	err := db.QueryRow("SELECT name, cost FROM quests WHERE name = $1", name).Scan(&q.Name, &q.Cost)
+	if err != nil {
+		return errors.New("error query")
+	}
+	return nil
+}
+
 func (e *Event) AppendDatabase(db *sql.DB) error {
 	response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.User_id, e.Quest_id)
 
@@ -66,6 +98,7 @@ func (e *Event) AppendDatabase(db *sql.DB) error {
 	}
 
 	count, err := response.RowsAffected()
+
 	if err != nil {
 		return errors.New("error")
 	}
@@ -84,6 +117,7 @@ func (e *Event) AppendDatabase(db *sql.DB) error {
 	if err != nil {
 		return errors.New("error")
 	}
+
 	return nil
 }
 
