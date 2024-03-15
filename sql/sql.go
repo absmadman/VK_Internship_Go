@@ -25,11 +25,96 @@ type Event struct {
 	Quest_id int `json:"quest_id"`
 }
 
+func (u *User) UpdateDatabaseById(id int, db *sql.DB) error {
+	if u.Balance > 0 {
+		if _, err := db.Exec("UPDATE users SET balance = $1 WHERE id = $2", u.Balance, id); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+	if u.Name != "" {
+		if _, err := db.Exec("UPDATE users SET name = $1 WHERE id = $2", u.Name, id); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+
+	return nil
+}
+
+func (u *User) UpdateDatabaseByName(name string, db *sql.DB) error {
+	if u.Balance > 0 {
+		if _, err := db.Exec("UPDATE users SET balance = $1 WHERE name = $2", u.Balance, name); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+	if u.Name != "" {
+		if _, err := db.Exec("UPDATE users SET name = $1 WHERE name = $2", u.Name, name); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+
+	return nil
+}
+
+func (q *Quest) UpdateDatabaseById(id int, db *sql.DB) error {
+	if q.Cost > 0 {
+		if _, err := db.Exec("UPDATE quests SET cost = $1 WHERE id = $2", q.Cost, id); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+	if q.Name != "" {
+		if _, err := db.Exec("UPDATE quests SET name = $1 WHERE id = $2", q.Name, id); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+
+	return nil
+}
+
+func (q *Quest) UpdateDatabaseByName(name string, db *sql.DB) error {
+	if q.Cost > 0 {
+		if _, err := db.Exec("UPDATE quests SET cost = $1 WHERE name = $2", q.Cost, name); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+	if q.Name != "" {
+		if _, err := db.Exec("UPDATE quests SET name = $1 WHERE name = $2", q.Name, name); err != nil {
+			return errors.New("error sql request")
+		}
+	}
+
+	return nil
+}
+
 func (q *Quest) AppendDatabase(db *sql.DB) error {
 	_, err := db.Exec("INSERT INTO quests (name, cost) VALUES ($1, $2)", q.Name, q.Cost)
 	if err != nil {
 		return errors.New("error")
 	}
+	return nil
+}
+
+func (u *User) AppendDatabaseById(db *sql.DB) error {
+	response, err := db.Exec("SELECT name FROM users WHERE name = $1", u.Name)
+
+	if err != nil {
+		return errors.New("error")
+	}
+
+	count, err := response.RowsAffected()
+
+	if err != nil {
+		return errors.New("error")
+	}
+	if count > 0 {
+		return errors.New("user already exist")
+	}
+
+	response, err = db.Exec("INSERT INTO users (name, balance) VALUES ($1, $2)", u.Name, u.Balance)
+
+	if err != nil {
+		return errors.New("error")
+	}
+
 	return nil
 }
 
