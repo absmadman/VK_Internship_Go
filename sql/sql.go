@@ -9,12 +9,14 @@ import (
 
 // localhost:8080/user
 type User struct {
+	Id      int     `json:"id"`
 	Name    string  `json:"name"`
 	Balance float64 `json:"balance"`
 }
 
 // localhost:8080/quest
 type Quest struct {
+	Id   int     `json:"id"`
 	Name string  `json:"name"`
 	Cost float64 `json:"cost"`
 }
@@ -144,7 +146,7 @@ func (u *User) AppendDatabase(db *sql.DB) error {
 }
 
 func (u *User) GetById(id int, db *sql.DB) error {
-	err := db.QueryRow("SELECT name, balance FROM users WHERE id = $1", id).Scan(&u.Name, &u.Balance)
+	err := db.QueryRow("SELECT id, name, balance FROM users WHERE id = $1", id).Scan(&u.Id, &u.Name, &u.Balance)
 	if err != nil {
 		return errors.New("error query")
 	}
@@ -152,7 +154,7 @@ func (u *User) GetById(id int, db *sql.DB) error {
 }
 
 func (u *User) GetByName(name string, db *sql.DB) error {
-	err := db.QueryRow("SELECT name, balance FROM users WHERE name = $1", name).Scan(&u.Name, &u.Balance)
+	err := db.QueryRow("SELECT id, name, balance FROM users WHERE name = $1", name).Scan(&u.Id, &u.Name, &u.Balance)
 	if err != nil {
 		return errors.New("error query")
 	}
@@ -160,7 +162,7 @@ func (u *User) GetByName(name string, db *sql.DB) error {
 }
 
 func (q *Quest) GetById(id int, db *sql.DB) error {
-	err := db.QueryRow("SELECT name, cost FROM quests WHERE id = $1", id).Scan(&q.Name, &q.Cost)
+	err := db.QueryRow("SELECT id, name, cost FROM quests WHERE id = $1", id).Scan(&q.Id, &q.Name, &q.Cost)
 	if err != nil {
 		return errors.New("error query")
 	}
@@ -168,7 +170,7 @@ func (q *Quest) GetById(id int, db *sql.DB) error {
 }
 
 func (q *Quest) GetByName(name string, db *sql.DB) error {
-	err := db.QueryRow("SELECT name, cost FROM quests WHERE name = $1", name).Scan(&q.Name, &q.Cost)
+	err := db.QueryRow("SELECT id, name, cost FROM quests WHERE name = $1", name).Scan(&q.Id, &q.Name, &q.Cost)
 	if err != nil {
 		return errors.New("error query")
 	}

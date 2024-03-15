@@ -4,6 +4,7 @@ import (
 	sqlpkg "VK_Internship_Go/sql"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,6 +25,8 @@ type Item interface {
 type Rout struct {
 	router *gin.Engine
 	db     *sql.DB
+	uCache *lru.Cache[int, any] // cache for users
+	qCache *lru.Cache[int, any] // cache for quests
 }
 
 func (rt *Rout) UserPost(cont *gin.Context) {
@@ -42,7 +45,6 @@ func (rt *Rout) UserPost(cont *gin.Context) {
 	}
 
 	rt.ItemAppendDatabase(cont, &u)
-
 }
 
 func (rt *Rout) ItemAppendDatabase(cont *gin.Context, i Item) {
@@ -103,11 +105,20 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 func (rt *Rout) UserGetById(cont *gin.Context) {
 	var u sqlpkg.User
 	id, err := strconv.Atoi(cont.Param("id"))
+	/*
+		if val, ok := rt.uCache.Get(id); ok {
+			fmt.Println("RETURN CACHED")
+			cont.IndentedJSON(http.StatusOK, val)
+			return
+		}
+
+	*/
 	if err != nil {
 		cont.JSON(400, gin.H{"message": "error param type"})
 		return
 	}
 	rt.ItemReadDatabaseById(cont, &u, id)
+	//rt.uCache.Add(u.Id, u)
 }
 
 func (rt *Rout) UserGetByName(cont *gin.Context) {
