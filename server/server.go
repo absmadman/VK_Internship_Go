@@ -487,6 +487,17 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
+func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
+	result := make(chan *Resp)
+	go func() {
+		var events
+		userId := cont.Param("user_id")
+		sqlpkg.Event{}
+	}()
+	resp := <-result
+	cont.IndentedJSON(resp.code, gin.H{"message"; resp.msg})
+}
+
 func HttpServer() {
 	rout := NewRout(gin.Default(), sqlpkg.NewConn())
 
@@ -498,6 +509,7 @@ func HttpServer() {
 	rout.router.GET("/users/name/:name", rout.UserGetByName)
 	rout.router.GET("/quests/id/:id", rout.QuestGetById)
 	rout.router.GET("/quests/name/:name", rout.QuestGetByName)
+	rout.router.GET("/events/user_id/:id", rout.EventsGetByUserId)
 	//rout.router.GET("/event", rout.EventGet)
 
 	rout.router.PUT("/users/id/:id", rout.UserPutById)
