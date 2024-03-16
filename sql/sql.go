@@ -88,7 +88,7 @@ func (q *Quest) UpdateDatabaseByName(name string, db *sql.DB) error {
 }
 
 func (q *Quest) AppendDatabase(db *sql.DB) error {
-	response, err := db.Exec("SELECT name FROM users WHERE name = $1", q.Name)
+	response, err := db.Exec("SELECT name FROM quests WHERE name = $1", q.Name)
 
 	if err != nil {
 		return errors.New("error")
