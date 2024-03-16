@@ -135,6 +135,32 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+func (rt *Rout) QuestGetById(cont *gin.Context) {
+	result := make(chan *Resp)
+	go func() {
+		var q sqlpkg.Quest
+		id, err := strconv.Atoi(cont.Param("id"))
+		if qc, ok := rt.qCacheId.Get(id); ok {
+			result <- NewResponse(200, "ok", qc)
+			return
+		}
+		if err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if err = rt.ItemReadDatabaseById(&q, id, result); err == nil {
+			rt.qCacheId.Add(id, &q)
+			rt.qCacheName.Add(q.Name, &q)
+		}
+	}()
+	resp := <-result
+	if resp.item == nil {
+		cont.JSON(resp.code, gin.H{"message": resp.msg})
+	} else {
+		cont.IndentedJSON(http.StatusOK, resp.item)
+	}
+}
+
 func (rt *Rout) UserGetById(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
@@ -176,32 +202,6 @@ func (rt *Rout) UserGetByName(cont *gin.Context) {
 			rt.uCacheId.Add(u.Id, &u)
 		}
 
-	}()
-	resp := <-result
-	if resp.item == nil {
-		cont.JSON(resp.code, gin.H{"message": resp.msg})
-	} else {
-		cont.IndentedJSON(http.StatusOK, resp.item)
-	}
-}
-
-func (rt *Rout) QuestGetById(cont *gin.Context) {
-	result := make(chan *Resp)
-	go func() {
-		var q sqlpkg.Quest
-		id, err := strconv.Atoi(cont.Param("id"))
-		if qc, ok := rt.uCacheId.Get(id); ok {
-			result <- NewResponse(200, "ok", qc)
-			return
-		}
-		if err != nil {
-			result <- NewResponse(400, "error param type", nil)
-			return
-		}
-		if err = rt.ItemReadDatabaseById(&q, id, result); err == nil {
-			rt.qCacheId.Add(id, &q)
-			rt.qCacheName.Add(q.Name, &q)
-		}
 	}()
 	resp := <-result
 	if resp.item == nil {
@@ -267,11 +267,73 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 			result <- NewResponse(400, "error sql execution", nil)
 			return
 		}
+		rt.UpdateUCachesById(u, id)
 		result <- NewResponse(200, "ok", nil)
 	}()
 	resp := <-result
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
+}
 
+func AssignmentUsersForUpdateCache(dst *sqlpkg.User, src sqlpkg.User) {
+	if src.Balance >= 0 {
+		dst.Balance = src.Balance
+	}
+	if src.Name != "" {
+		dst.Name = src.Name
+	}
+}
+
+func (rt *Rout) UpdateUCachesByName(u sqlpkg.User, name string) {
+	uc, ok := rt.uCacheName.Get(name)
+	if ok {
+		AssignmentUsersForUpdateCache(uc, u)
+	}
+	rt.uCacheName.Remove(name)
+	rt.uCacheName.Add(name, uc)
+	rt.uCacheId.Remove(u.Id)
+	rt.uCacheId.Add(u.Id, uc)
+}
+
+func (rt *Rout) UpdateUCachesById(u sqlpkg.User, id int) {
+	uc, ok := rt.uCacheId.Get(id)
+	if ok {
+		AssignmentUsersForUpdateCache(uc, u)
+	}
+	rt.uCacheId.Remove(id)
+	rt.uCacheId.Add(id, uc)
+	rt.uCacheName.Remove(uc.Name)
+	rt.uCacheName.Add(uc.Name, uc)
+}
+
+func AssignmentQuestsForUpdateCache(dst *sqlpkg.Quest, src sqlpkg.Quest) {
+	if src.Cost >= 0 {
+		dst.Cost = src.Cost
+	}
+	if src.Name != "" {
+		dst.Name = src.Name
+	}
+}
+
+func (rt *Rout) UpdateQCachesByName(q sqlpkg.Quest, name string) {
+	qc, ok := rt.qCacheName.Get(name)
+	if ok {
+		AssignmentQuestsForUpdateCache(qc, q)
+	}
+	rt.qCacheName.Remove(name)
+	rt.qCacheName.Add(name, qc)
+	rt.qCacheId.Remove(q.Id)
+	rt.qCacheId.Add(q.Id, qc)
+}
+
+func (rt *Rout) UpdateQCachesById(q sqlpkg.Quest, id int) {
+	qc, ok := rt.qCacheId.Get(id)
+	if ok {
+		AssignmentQuestsForUpdateCache(qc, q)
+	}
+	rt.qCacheId.Remove(id)
+	rt.qCacheId.Add(id, qc)
+	rt.qCacheName.Remove(qc.Name)
+	rt.qCacheName.Add(qc.Name, qc)
 }
 
 func (rt *Rout) UserPutByName(cont *gin.Context) {
@@ -289,6 +351,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 			result <- NewResponse(400, "error sql execution", nil)
 			return
 		}
+		rt.UpdateUCachesByName(u, name)
 		result <- NewResponse(200, "ok", &u)
 	}()
 	resp := <-result
@@ -296,92 +359,132 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 
 }
 
-func (rt *Rout) ItemUpdateDatabaseById(cont *gin.Context, id int, i Item) {
-	if err := i.UpdateDatabaseById(id, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error sql execution"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
-}
-
 func (rt *Rout) QuestPutById(cont *gin.Context) {
-	var q sqlpkg.Quest
-	q.Cost = -1
-	q.Name = ""
-	if err := cont.BindJSON(&q); err != nil {
-		cont.JSON(400, gin.H{"message": "error binding json"})
-		return
-	}
-	id, err := strconv.Atoi(cont.Param("id"))
-	if err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	if err = q.UpdateDatabaseById(id, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error sql execution"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		var q sqlpkg.Quest
+		q.Cost = -1
+		q.Name = ""
+		if err := cont.BindJSON(&q); err != nil {
+			result <- NewResponse(400, "error binding json", nil)
+			return
+		}
+		id, err := strconv.Atoi(cont.Param("id"))
+		if err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if err = q.UpdateDatabaseById(id, rt.db); err != nil {
+			result <- NewResponse(400, "error sql execution", nil)
+			return
+		}
+		rt.UpdateQCachesById(q, id)
+		result <- NewResponse(200, "ok", &q)
+	}()
+	resp := <-result
+	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func (rt *Rout) QuestPutByName(cont *gin.Context) {
-	var q sqlpkg.Quest
-	q.Cost = -1
-	q.Name = ""
-	if err := cont.BindJSON(&q); err != nil {
-		cont.JSON(400, gin.H{"message": "error binding json"})
-		return
-	}
-	name := cont.Param("name")
-	if err := q.UpdateDatabaseByName(name, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error sql execution"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		var q sqlpkg.Quest
+		q.Cost = -1
+		q.Name = ""
+		if err := cont.BindJSON(&q); err != nil {
+			result <- NewResponse(400, "error binding json", nil)
+			return
+		}
+		name := cont.Param("name")
+		if err := q.UpdateDatabaseByName(name, rt.db); err != nil {
+			result <- NewResponse(400, "error sql execution", nil)
+			return
+		}
+		rt.UpdateQCachesByName(q, name)
+		result <- NewResponse(200, "ok", nil)
+	}()
+	resp := <-result
+	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func (rt *Rout) UserDeleteById(cont *gin.Context) {
-	id, err := strconv.Atoi(cont.Param("id"))
-	if err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	if err = sqlpkg.RemoveUserFromDatabaseById(id, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		id, err := strconv.Atoi(cont.Param("id"))
+		if err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if err = sqlpkg.RemoveUserFromDatabaseById(id, rt.db); err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if u, ok := rt.uCacheId.Get(id); ok {
+			rt.uCacheId.Remove(id)
+			rt.uCacheName.Remove(u.Name)
+		}
+		result <- NewResponse(200, "ok", nil)
+	}()
+	resp := <-result
+	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func (rt *Rout) UserDeleteByName(cont *gin.Context) {
-	name := cont.Param("name")
-	if err := sqlpkg.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		name := cont.Param("name")
+		if err := sqlpkg.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if u, ok := rt.uCacheName.Get(name); ok {
+			rt.uCacheId.Remove(u.Id)
+			rt.uCacheName.Remove(name)
+		}
+		result <- NewResponse(200, "ok", nil)
+	}()
+	resp := <-result
+	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func (rt *Rout) QuestDeleteById(cont *gin.Context) {
-	id, err := strconv.Atoi(cont.Param("id"))
-	if err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	if err = sqlpkg.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		id, err := strconv.Atoi(cont.Param("id"))
+		if err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if err = sqlpkg.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if q, ok := rt.qCacheId.Get(id); ok {
+			rt.qCacheId.Remove(id)
+			rt.qCacheName.Remove(q.Name)
+		}
+		result <- NewResponse(200, "ok", nil)
+	}()
+	resp := <-result
+	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
-	name := cont.Param("name")
-	if err := sqlpkg.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
-		cont.JSON(400, gin.H{"message": "error param type"})
-		return
-	}
-	cont.JSON(200, gin.H{"message": "ok"})
+	result := make(chan *Resp)
+	go func() {
+		name := cont.Param("name")
+		if err := sqlpkg.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
+			result <- NewResponse(400, "error param type", nil)
+			return
+		}
+		if q, ok := rt.qCacheName.Get(name); ok {
+			rt.qCacheId.Remove(q.Id)
+			rt.qCacheName.Remove(name)
+		}
+		result <- NewResponse(200, "ok", nil)
+	}()
+	resp := <-result
+	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
 func HttpServer() {
