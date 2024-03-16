@@ -23,16 +23,10 @@ type Quest struct {
 
 // localhost:8080/event
 type Event struct {
-	User_id  int `json:"user_id"`
-	Quest_id int `json:"quest_id"`
-}
-
-type Users struct {
-	Users []int
-}
-
-type Quests struct {
-	Quests []int
+	UserId  int   `json:"user_id"`
+	QuestId int   `json:"quest_id"`
+	Users   []int `json:"users_ids"`
+	Quests  []int `json:"quest_ids"`
 }
 
 func (u *User) UpdateDatabaseById(id int, db *sql.DB) error {
@@ -212,17 +206,17 @@ func (q *Quest) GetByName(name string, db *sql.DB) error {
 }
 
 func (e *Event) AppendDatabase(db *sql.DB) error {
-	response, _ := db.Exec("SELECT id FROM users WHERE id = $1", e.User_id)
+	response, _ := db.Exec("SELECT id FROM users WHERE id = $1", e.UserId)
 	if num, _ := response.RowsAffected(); num == 0 {
 		return errors.New("user not exists")
 	}
 
-	response, _ = db.Exec("SELECT id FROM quests WHERE id = $1", e.Quest_id)
+	response, _ = db.Exec("SELECT id FROM quests WHERE id = $1", e.QuestId)
 	if num, _ := response.RowsAffected(); num == 0 {
 		return errors.New("quest not exists")
 	}
 
-	response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.User_id, e.Quest_id)
+	response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.UserId, e.QuestId)
 
 	if err != nil {
 		return errors.New("error")
@@ -237,13 +231,13 @@ func (e *Event) AppendDatabase(db *sql.DB) error {
 		return errors.New("event already completed")
 	}
 
-	response, err = db.Exec("INSERT INTO user_quest (user_id, quest_id) VALUES ($1, $2)", e.User_id, e.Quest_id)
+	response, err = db.Exec("INSERT INTO user_quest (user_id, quest_id) VALUES ($1, $2)", e.UserId, e.QuestId)
 
 	if err != nil {
 		return errors.New("error")
 	}
 
-	response, err = db.Exec("UPDATE users SET balance = balance + (SELECT cost FROM quests WHERE id = $1) WHERE id = $2", e.Quest_id, e.User_id)
+	response, err = db.Exec("UPDATE users SET balance = balance + (SELECT cost FROM quests WHERE id = $1) WHERE id = $2", e.QuestId, e.UserId)
 
 	if err != nil {
 		return errors.New("error")
@@ -252,21 +246,20 @@ func (e *Event) AppendDatabase(db *sql.DB) error {
 	return nil
 }
 
-func (e *Event) GetByUser(db *sql.DB) (*Quests, error) {
-	var qs Quests
-	rows, err := db.Query("SELECT quest_id FROM user_quest WHERE user_id = $1", e.User_id)
+func (e *Event) GetByUser(db *sql.DB) error {
+	rows, err := db.Query("SELECT quest_id FROM user_quest WHERE user_id = $1", e.UserId)
 	if err != nil {
-		return nil, errors.New("error sql request")
+		return errors.New("error sql request")
 	}
 	for rows.Next() {
-		var questId int
-		err = rows.Scan(&questId)
+		var id int
+		err = rows.Scan(&id)
 		if err != nil {
-			return nil, errors.New("error parsing rows")
+			return errors.New("error parsing rows")
 		}
-		qs.Quests = append(qs.Quests, questId)
+		e.Quests = append(e.Quests, id)
 	}
-	return &qs, nil
+	return nil
 }
 
 func RemoveUserFromDatabaseById(id int, db *sql.DB) error {

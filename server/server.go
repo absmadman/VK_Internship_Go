@@ -3,6 +3,7 @@ package server
 import (
 	sqlpkg "VK_Internship_Go/sql"
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"log"
@@ -23,6 +24,12 @@ type Resp struct {
 	item Item
 }
 
+type EventResp struct {
+	code  int
+	msg   string
+	event *sqlpkg.Event
+}
+
 type Rout struct {
 	router     *gin.Engine
 	db         *sql.DB
@@ -30,6 +37,14 @@ type Rout struct {
 	qCacheId   *lru.Cache[int, *sqlpkg.Quest]
 	uCacheName *lru.Cache[string, *sqlpkg.User]
 	qCacheName *lru.Cache[string, *sqlpkg.Quest]
+}
+
+func NewEventResponse(code int, msg string, event *sqlpkg.Event) *EventResp {
+	return &EventResp{
+		code:  code,
+		msg:   msg,
+		event: event,
+	}
 }
 
 func NewResponse(code int, msg string, item Item) *Resp {
@@ -488,14 +503,27 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 }
 
 func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
-	result := make(chan *Resp)
+	result := make(chan *EventResp)
 	go func() {
-		var events
-		userId := cont.Param("user_id")
-		sqlpkg.Event{}
+		var event sqlpkg.Event
+		userId, err := strconv.Atoi(cont.Param("id"))
+		fmt.Println(userId)
+		if err != nil {
+			result <- NewEventResponse(400, "error param type", nil)
+		}
+		event.UserId = userId
+		err = event.GetByUser(rt.db)
+		if err != nil {
+			result <- NewEventResponse(400, "error user_id", nil)
+		}
+		result <- NewEventResponse(200, "ok", &event)
 	}()
 	resp := <-result
-	cont.IndentedJSON(resp.code, gin.H{"message"; resp.msg})
+	if resp.event != nil {
+		cont.IndentedJSON(http.StatusOK, resp.event.Quests)
+	} else {
+		cont.JSON(resp.code, gin.H{"message": resp.msg})
+	}
 }
 
 func HttpServer() {
