@@ -88,9 +88,30 @@ func (q *Quest) UpdateDatabaseByName(name string, db *sql.DB) error {
 }
 
 func (q *Quest) AppendDatabase(db *sql.DB) error {
-	_, err := db.Exec("INSERT INTO quests (name, cost) VALUES ($1, $2)", q.Name, q.Cost)
+	response, err := db.Exec("SELECT name FROM users WHERE name = $1", q.Name)
+
 	if err != nil {
 		return errors.New("error")
+	}
+
+	count, err := response.RowsAffected()
+
+	if err != nil {
+		return errors.New("error")
+	}
+	if count > 0 {
+		return errors.New("quest already exist")
+	}
+
+	_, err = db.Exec("INSERT INTO quests (name, cost) VALUES ($1, $2)", q.Name, q.Cost)
+	if err != nil {
+		return errors.New("error")
+	}
+
+	err = db.QueryRow("SELECT id FROM quests WHERE name = $1", q.Name).Scan(&q.Id)
+
+	if err != nil {
+		return errors.New("error query")
 	}
 	return nil
 }
@@ -142,6 +163,11 @@ func (u *User) AppendDatabase(db *sql.DB) error {
 		return errors.New("error")
 	}
 
+	err = db.QueryRow("SELECT id FROM users WHERE name = $1", u.Name).Scan(&u.Id)
+
+	if err != nil {
+		return errors.New("error query")
+	}
 	return nil
 }
 
