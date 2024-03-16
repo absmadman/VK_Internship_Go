@@ -46,12 +46,30 @@ func (u *User) UpdateDatabaseById(id int, db *sql.DB) error {
 
 func (u *User) UpdateDatabaseByName(name string, db *sql.DB) error {
 	if u.Balance > 0 {
-		if _, err := db.Exec("UPDATE users SET balance = $1 WHERE name = $2", u.Balance, name); err != nil {
+		responce, err := db.Exec("UPDATE users SET balance = $1 WHERE name = $2", u.Balance, name)
+
+		if err != nil {
+			return errors.New("error sql request")
+		}
+		num, err := responce.RowsAffected()
+		if num == 0 {
+			return errors.New("error user not exist")
+		}
+		if err != nil {
 			return errors.New("error sql request")
 		}
 	}
 	if u.Name != "" {
-		if _, err := db.Exec("UPDATE users SET name = $1 WHERE name = $2", u.Name, name); err != nil {
+		responce, err := db.Exec("UPDATE users SET name = $1 WHERE name = $2", u.Name, name)
+
+		if err != nil {
+			return errors.New("error sql request")
+		}
+		num, err := responce.RowsAffected()
+		if num == 0 {
+			return errors.New("error user not exist")
+		}
+		if err != nil {
 			return errors.New("error sql request")
 		}
 	}

@@ -216,7 +216,6 @@ func (rt *Rout) UserGetByName(cont *gin.Context) {
 			rt.uCacheName.Add(name, &u)
 			rt.uCacheId.Add(u.Id, &u)
 		}
-
 	}()
 	resp := <-result
 	if resp.item == nil {
