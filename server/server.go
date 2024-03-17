@@ -3,7 +3,6 @@ package server
 import (
 	sqlpkg "VK_Internship_Go/sql"
 	"database/sql"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"log"
@@ -25,9 +24,11 @@ type Resp struct {
 }
 
 type EventResp struct {
-	code  int
-	msg   string
-	event *sqlpkg.Event
+	code int
+	msg  string
+
+	//event *sqlpkg.Event
+	event *sqlpkg.EventResponse
 }
 
 type Rout struct {
@@ -39,7 +40,7 @@ type Rout struct {
 	qCacheName *lru.Cache[string, *sqlpkg.Quest]
 }
 
-func NewEventResponse(code int, msg string, event *sqlpkg.Event) *EventResp {
+func NewEventResponse(code int, msg string, event *sqlpkg.EventResponse) *EventResp {
 	return &EventResp{
 		code:  code,
 		msg:   msg,
@@ -145,6 +146,12 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 		} else {
 			result <- NewResponse(200, "ok", nil)
 		}
+		u := sqlpkg.User{
+			Id:      e.UserId,
+			Name:    "",
+			Balance: e.UserBalance,
+		}
+		rt.UpdateUCachesById(u, u.Id)
 	}()
 	resp := <-result
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
@@ -506,20 +513,21 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 	go func() {
 		var event sqlpkg.Event
 		userId, err := strconv.Atoi(cont.Param("id"))
-		fmt.Println(userId)
 		if err != nil {
 			result <- NewEventResponse(400, "error param type", nil)
+			return
 		}
 		event.UserId = userId
-		err = event.GetByUser(rt.db)
+		res, err := event.GetByUser(rt.db)
 		if err != nil {
 			result <- NewEventResponse(400, "error user_id", nil)
+			return
 		}
-		result <- NewEventResponse(200, "ok", &event)
+		result <- NewEventResponse(200, "ok", res)
 	}()
 	resp := <-result
 	if resp.event != nil {
-		cont.IndentedJSON(http.StatusOK, resp.event.Quests)
+		cont.IndentedJSON(http.StatusOK, resp.event)
 	} else {
 		cont.JSON(resp.code, gin.H{"message": resp.msg})
 	}
