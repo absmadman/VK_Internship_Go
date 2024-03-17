@@ -262,6 +262,10 @@ func (rt *Rout) QuestGetByName(cont *gin.Context) {
 }
 
 func NewRout(g *gin.Engine, d *sql.DB) *Rout {
+	//cacheSize, err := strconv.Atoi(os.Getenv("SERVER_CACHE_SIZE"))
+	//if {
+
+	//}
 	ucId, _ := lru.New[int, *sqlpkg.User](128)
 	qcId, _ := lru.New[int, *sqlpkg.Quest](128)
 	ucName, _ := lru.New[string, *sqlpkg.User](128)

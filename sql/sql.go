@@ -3,8 +3,10 @@ package sql
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/lib/pq"
 	"log"
+	"os"
 )
 
 type User struct {
@@ -50,14 +52,15 @@ func (u *User) UpdateDatabaseById(id int, db *sql.DB) error {
 func (u *User) UpdateDatabaseByName(name string, db *sql.DB) error {
 	if u.Balance > 0 {
 		responce, err := db.Exec("UPDATE users SET balance = $1 WHERE name = $2", u.Balance, name)
-
 		if err != nil {
 			return errors.New("error sql request")
 		}
+
 		num, err := responce.RowsAffected()
 		if num == 0 {
 			return errors.New("error user not exist")
 		}
+
 		if err != nil {
 			return errors.New("error sql request")
 		}
@@ -369,8 +372,10 @@ func RemoveQuestFromDatabaseByName(name string, db *sql.DB) error {
 }
 
 func NewConn() *sql.DB { // need to write up some config file read
-	//connStr := "user=server password=server dbname=api_db sslmode=disable"
-	connStr := "postgres://server:server@postgres/api_db?sslmode=disable"
+	pgPass := os.Getenv("POSTGRES_PASSWORD")
+	pgUser := os.Getenv("POSTGRES_USER")
+	pgDb := os.Getenv("POSTGRES_DB")
+	connStr := fmt.Sprintf("postgres://%s:%s@postgres/%s?sslmode=disable", pgUser, pgPass, pgDb)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)

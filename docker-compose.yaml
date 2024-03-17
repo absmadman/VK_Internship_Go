@@ -23,6 +23,10 @@ services:
     links:
       - postgres
     environment:
-      POSTGRES_HOST: postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=server
+      - POSTGRES_PASSWORD=server
+      - POSTGRES_DB=api_db
+      - SERVER_CACHE_SIZE=128
 volumes:
   pgdata:
