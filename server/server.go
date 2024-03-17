@@ -24,10 +24,8 @@ type Resp struct {
 }
 
 type EventResp struct {
-	code int
-	msg  string
-
-	//event *sqlpkg.Event
+	code  int
+	msg   string
 	event *sqlpkg.EventResponse
 }
 
@@ -557,7 +555,7 @@ func HttpServer() {
 	rout.router.DELETE("/quests/id/:id", rout.QuestDeleteById)
 	rout.router.DELETE("/quests/name/:name", rout.QuestDeleteByName)
 
-	err := rout.router.Run("localhost:8080")
+	err := rout.router.Run("0.0.0.0:8080")
 	if err != nil {
 		log.Println(err)
 	}
