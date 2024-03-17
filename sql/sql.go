@@ -340,7 +340,7 @@ func RemoveQuestFromDatabaseByName(name string, db *sql.DB) error {
 }
 
 func NewConn() *sql.DB { // need to write up some config file read
-	connStr := "user=server password=server dbname=userdb sslmode=disable"
+	connStr := "user=server password=server dbname=api_db sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
