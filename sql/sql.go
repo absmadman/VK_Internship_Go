@@ -7,26 +7,21 @@ import (
 	"log"
 )
 
-// localhost:8080/user
 type User struct {
 	Id      int     `json:"id"`
 	Name    string  `json:"name"`
 	Balance float64 `json:"balance"`
 }
 
-// localhost:8080/quest
 type Quest struct {
 	Id   int     `json:"id"`
 	Name string  `json:"name"`
 	Cost float64 `json:"cost"`
 }
 
-// localhost:8080/event
 type Event struct {
-	UserId  int `json:"user_id"`
-	QuestId int `json:"quest_id"`
-	//Users       []int   `json:"users_ids"`
-	//Quests      []int   `json:"quest_ids"`
+	UserId      int     `json:"user_id"`
+	QuestId     int     `json:"quest_id"`
 	UserBalance float64 `json:"user_balance"`
 }
 
@@ -231,45 +226,122 @@ func (q *Quest) GetByName(name string, db *sql.DB) error {
 	return nil
 }
 
-func (e *Event) AppendDatabase(db *sql.DB) error {
-	response, _ := db.Exec("SELECT id FROM users WHERE id = $1", e.UserId)
-	if num, _ := response.RowsAffected(); num == 0 {
-		return errors.New("user is not exist")
+func CheckUserIdExist(db *sql.DB, id int) bool {
+	response, err := db.Exec("SELECT id FROM users WHERE id = $1", id)
+	if err != nil {
+		return false
 	}
-
-	response, _ = db.Exec("SELECT id FROM quests WHERE id = $1", e.QuestId)
-	if num, _ := response.RowsAffected(); num == 0 {
-		return errors.New("quest is not exist")
+	num, err := response.RowsAffected()
+	if err != nil {
+		return false
 	}
+	if num == 0 {
+		return false
+	}
+	return true
+}
 
+func CheckQuestIdExist(db *sql.DB, id int) bool {
+	response, err := db.Exec("SELECT id FROM quests WHERE id = $1", id)
+	if err != nil {
+		return false
+	}
+	num, err := response.RowsAffected()
+	if err != nil {
+		return false
+	}
+	if num == 0 {
+		return false
+	}
+	return true
+}
+
+func (e *Event) CheckEventExist(db *sql.DB) bool {
 	response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.UserId, e.QuestId)
-
 	if err != nil {
-		return errors.New("error")
+		return true
 	}
-
 	count, err := response.RowsAffected()
-
 	if err != nil {
-		return errors.New("error")
+		return true
 	}
 	if count > 0 {
+		return true
+	}
+	return false
+}
+
+func (e *Event) AppendDatabase(db *sql.DB) error {
+	/*
+		response, err := db.Exec("SELECT id FROM users WHERE id = $1", e.UserId)
+		if err != nil {
+			return err
+		}
+		num, err := response.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if num == 0 {
+			return errors.New("user is not exist")
+		}
+	*/
+	if !CheckUserIdExist(db, e.UserId) {
+		return errors.New("user is not exist")
+	}
+	/*
+		response, err = db.Exec("SELECT id FROM quests WHERE id = $1", e.QuestId)
+		if err != nil {
+			return err
+		}
+
+		num, err = response.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if num == 0 {
+			return errors.New("quest is not exist")
+		}
+	*/
+	if !CheckQuestIdExist(db, e.QuestId) {
+		return errors.New("quest is not exist")
+	}
+	/*
+		response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.UserId, e.QuestId)
+
+		if err != nil {
+			return errors.New("error")
+		}
+
+		count, err := response.RowsAffected()
+
+		if err != nil {
+			return errors.New("error")
+		}
+		if count > 0 {
+			return errors.New("event already completed")
+		}
+	*/
+	if e.CheckEventExist(db) {
 		return errors.New("event already completed")
 	}
 
-	response, err = db.Exec("INSERT INTO user_quest (user_id, quest_id) VALUES ($1, $2)", e.UserId, e.QuestId)
+	_, err := db.Exec("INSERT INTO user_quest (user_id, quest_id) VALUES ($1, $2)", e.UserId, e.QuestId)
 
 	if err != nil {
 		return errors.New("error")
 	}
 
-	response, err = db.Exec("UPDATE users SET balance = balance + (SELECT cost FROM quests WHERE id = $1) WHERE id = $2", e.QuestId, e.UserId)
+	_, err = db.Exec("UPDATE users SET balance = balance + (SELECT cost FROM quests WHERE id = $1) WHERE id = $2", e.QuestId, e.UserId)
 
 	if err != nil {
 		return errors.New("error")
 	}
 
-	_ = db.QueryRow("SELECT balance FROM users WHERE id = $1", e.UserId).Scan(&e.UserBalance)
+	err = db.QueryRow("SELECT balance FROM users WHERE id = $1", e.UserId).Scan(&e.UserBalance)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

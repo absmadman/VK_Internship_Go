@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type Item interface {
@@ -36,6 +37,7 @@ type Rout struct {
 	qCacheId   *lru.Cache[int, *sqlpkg.Quest]
 	uCacheName *lru.Cache[string, *sqlpkg.User]
 	qCacheName *lru.Cache[string, *sqlpkg.Quest]
+	mu         sync.Mutex
 }
 
 func NewEventResponse(code int, msg string, event *sqlpkg.EventResponse) *EventResp {
@@ -55,6 +57,8 @@ func NewResponse(code int, msg string, item Item) *Resp {
 }
 
 func (rt *Rout) UserPost(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u sqlpkg.User
@@ -107,6 +111,8 @@ func (rt *Rout) ItemReadDatabaseByName(i Item, name string, result chan<- *Resp)
 }
 
 func (rt *Rout) QuestPost(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q sqlpkg.Quest
@@ -132,6 +138,8 @@ func (rt *Rout) QuestPost(cont *gin.Context) {
 
 }
 func (rt *Rout) EventPost(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var e sqlpkg.Event
@@ -141,6 +149,7 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 		}
 		if e.AppendDatabase(rt.db) != nil {
 			result <- NewResponse(400, "error database indexing", nil)
+			return
 		} else {
 			result <- NewResponse(200, "ok", nil)
 		}
@@ -268,6 +277,8 @@ func NewRout(g *gin.Engine, d *sql.DB) *Rout {
 }
 
 func (rt *Rout) UserPutById(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u sqlpkg.User
@@ -306,22 +317,22 @@ func (rt *Rout) UpdateUCachesByName(u sqlpkg.User, name string) {
 	uc, ok := rt.uCacheName.Get(name)
 	if ok {
 		AssignmentUsersForUpdateCache(uc, u)
+		rt.uCacheName.Remove(name)
+		rt.uCacheName.Add(name, uc)
+		rt.uCacheId.Remove(u.Id)
+		rt.uCacheId.Add(u.Id, uc)
 	}
-	rt.uCacheName.Remove(name)
-	rt.uCacheName.Add(name, uc)
-	rt.uCacheId.Remove(u.Id)
-	rt.uCacheId.Add(u.Id, uc)
 }
 
 func (rt *Rout) UpdateUCachesById(u sqlpkg.User, id int) {
 	uc, ok := rt.uCacheId.Get(id)
 	if ok {
 		AssignmentUsersForUpdateCache(uc, u)
+		rt.uCacheId.Remove(id)
+		rt.uCacheId.Add(id, uc)
+		rt.uCacheName.Remove(uc.Name)
+		rt.uCacheName.Add(uc.Name, uc)
 	}
-	rt.uCacheId.Remove(id)
-	rt.uCacheId.Add(id, uc)
-	rt.uCacheName.Remove(uc.Name)
-	rt.uCacheName.Add(uc.Name, uc)
 }
 
 func AssignmentQuestsForUpdateCache(dst *sqlpkg.Quest, src sqlpkg.Quest) {
@@ -337,25 +348,27 @@ func (rt *Rout) UpdateQCachesByName(q sqlpkg.Quest, name string) {
 	qc, ok := rt.qCacheName.Get(name)
 	if ok {
 		AssignmentQuestsForUpdateCache(qc, q)
+		rt.qCacheName.Remove(name)
+		rt.qCacheName.Add(name, qc)
+		rt.qCacheId.Remove(q.Id)
+		rt.qCacheId.Add(q.Id, qc)
 	}
-	rt.qCacheName.Remove(name)
-	rt.qCacheName.Add(name, qc)
-	rt.qCacheId.Remove(q.Id)
-	rt.qCacheId.Add(q.Id, qc)
 }
 
 func (rt *Rout) UpdateQCachesById(q sqlpkg.Quest, id int) {
 	qc, ok := rt.qCacheId.Get(id)
 	if ok {
 		AssignmentQuestsForUpdateCache(qc, q)
+		rt.qCacheId.Remove(id)
+		rt.qCacheId.Add(id, qc)
+		rt.qCacheName.Remove(qc.Name)
+		rt.qCacheName.Add(qc.Name, qc)
 	}
-	rt.qCacheId.Remove(id)
-	rt.qCacheId.Add(id, qc)
-	rt.qCacheName.Remove(qc.Name)
-	rt.qCacheName.Add(qc.Name, qc)
 }
 
 func (rt *Rout) UserPutByName(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u sqlpkg.User
@@ -379,6 +392,8 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 }
 
 func (rt *Rout) QuestPutById(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q sqlpkg.Quest
@@ -405,6 +420,8 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 }
 
 func (rt *Rout) QuestPutByName(cont *gin.Context) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q sqlpkg.Quest
