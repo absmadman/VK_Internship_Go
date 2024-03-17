@@ -272,55 +272,12 @@ func (e *Event) CheckEventExist(db *sql.DB) bool {
 }
 
 func (e *Event) AppendDatabase(db *sql.DB) error {
-	/*
-		response, err := db.Exec("SELECT id FROM users WHERE id = $1", e.UserId)
-		if err != nil {
-			return err
-		}
-		num, err := response.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if num == 0 {
-			return errors.New("user is not exist")
-		}
-	*/
 	if !CheckUserIdExist(db, e.UserId) {
 		return errors.New("user is not exist")
 	}
-	/*
-		response, err = db.Exec("SELECT id FROM quests WHERE id = $1", e.QuestId)
-		if err != nil {
-			return err
-		}
-
-		num, err = response.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if num == 0 {
-			return errors.New("quest is not exist")
-		}
-	*/
 	if !CheckQuestIdExist(db, e.QuestId) {
 		return errors.New("quest is not exist")
 	}
-	/*
-		response, err := db.Exec("SELECT user_id, quest_id FROM user_quest WHERE user_id = $1 AND quest_id = $2", e.UserId, e.QuestId)
-
-		if err != nil {
-			return errors.New("error")
-		}
-
-		count, err := response.RowsAffected()
-
-		if err != nil {
-			return errors.New("error")
-		}
-		if count > 0 {
-			return errors.New("event already completed")
-		}
-	*/
 	if e.CheckEventExist(db) {
 		return errors.New("event already completed")
 	}
