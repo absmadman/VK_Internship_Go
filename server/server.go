@@ -15,15 +15,15 @@ func (rt *Rout) UserPost(cont *gin.Context) {
 	go func() {
 		var u db.User
 		if err := cont.BindJSON(&u); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		if u.Balance < 0 {
-			result <- NewResponse(http.StatusBadRequest, "error balance cannot be negative", nil)
+			result <- NewResponse(http.StatusBadRequest, balanceError, nil)
 			return
 		}
 		if u.Name == "" {
-			result <- NewResponse(http.StatusBadRequest, "error name cannot be empty", nil)
+			result <- NewResponse(http.StatusBadRequest, nameError, nil)
 			return
 		}
 		if err := rt.ItemAppendDatabase(&u, result); err == nil {
@@ -37,7 +37,7 @@ func (rt *Rout) UserPost(cont *gin.Context) {
 
 func (rt *Rout) ItemAppendDatabase(i Item, result chan<- *Resp) error {
 	if err := i.AppendDatabase(rt.db); err != nil {
-		result <- NewResponse(http.StatusConflict, "error database indexing", nil)
+		result <- NewResponse(http.StatusConflict, dbError, nil)
 		return err
 	}
 	result <- NewResponse(http.StatusCreated, "ok", i)
@@ -46,7 +46,7 @@ func (rt *Rout) ItemAppendDatabase(i Item, result chan<- *Resp) error {
 
 func (rt *Rout) ItemReadDatabaseById(i Item, id int, result chan<- *Resp) error {
 	if err := i.GetById(id, rt.db); err != nil {
-		result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+		result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 		return err
 	}
 	result <- NewResponse(http.StatusOK, "ok", i)
@@ -55,7 +55,7 @@ func (rt *Rout) ItemReadDatabaseById(i Item, id int, result chan<- *Resp) error 
 
 func (rt *Rout) ItemReadDatabaseByName(i Item, name string, result chan<- *Resp) error {
 	if err := i.GetByName(name, rt.db); err != nil {
-		result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+		result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 		return err
 	}
 	result <- NewResponse(http.StatusOK, "ok", i)
@@ -69,15 +69,15 @@ func (rt *Rout) QuestPost(cont *gin.Context) {
 	go func() {
 		var q db.Quest
 		if err := cont.BindJSON(&q); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		if q.Cost < 0 {
-			result <- NewResponse(http.StatusBadRequest, "error cost cannot be negative", nil)
+			result <- NewResponse(http.StatusBadRequest, costError, nil)
 			return
 		}
 		if q.Name == "" {
-			result <- NewResponse(http.StatusBadRequest, "error name cannot be empty", nil)
+			result <- NewResponse(http.StatusBadRequest, nameError, nil)
 			return
 		}
 		if err := rt.ItemAppendDatabase(&q, result); err == nil {
@@ -96,11 +96,11 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 	go func() {
 		var e db.Event
 		if err := cont.BindJSON(&e); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		if e.AppendDatabase(rt.db) != nil {
-			result <- NewResponse(http.StatusBadRequest, "error database indexing", nil)
+			result <- NewResponse(http.StatusBadRequest, dbError, nil)
 			return
 		} else {
 			result <- NewResponse(http.StatusCreated, "ok", nil)
@@ -116,20 +116,15 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) QuestGetById(cont *gin.Context) {
+func (rt *Rout) QuestGetById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
 		var q db.Quest
-		id, err := strconv.Atoi(cont.Param("id"))
 		if qc, ok := rt.qCacheId.Get(id); ok {
 			result <- NewResponse(http.StatusOK, "ok", qc)
 			return
 		}
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
-			return
-		}
-		if err = rt.ItemReadDatabaseById(&q, id, result); err == nil {
+		if err := rt.ItemReadDatabaseById(&q, id, result); err == nil {
 			rt.qCacheId.Add(id, &q)
 			rt.qCacheName.Add(q.Name, &q)
 		}
@@ -142,21 +137,15 @@ func (rt *Rout) QuestGetById(cont *gin.Context) {
 	}
 }
 
-func (rt *Rout) UserGetById(cont *gin.Context) {
+func (rt *Rout) UserGetById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
 		var u db.User
-		id, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
-			return
-		}
 		if uc, ok := rt.uCacheId.Get(id); ok {
 			result <- NewResponse(http.StatusOK, "ok", uc)
 			return
 		}
-
-		if err = rt.ItemReadDatabaseById(&u, id, result); err == nil {
+		if err := rt.ItemReadDatabaseById(&u, id, result); err == nil {
 			rt.uCacheId.Add(id, &u)
 			rt.uCacheName.Add(u.Name, &u)
 		}
@@ -169,11 +158,10 @@ func (rt *Rout) UserGetById(cont *gin.Context) {
 	}
 }
 
-func (rt *Rout) UserGetByName(cont *gin.Context) {
+func (rt *Rout) UserGetByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
 		var u db.User
-		name := cont.Param("name")
 		if uc, ok := rt.uCacheName.Get(name); ok {
 			result <- NewResponse(http.StatusOK, "ok", uc)
 			return
@@ -191,11 +179,10 @@ func (rt *Rout) UserGetByName(cont *gin.Context) {
 	}
 }
 
-func (rt *Rout) QuestGetByName(cont *gin.Context) {
+func (rt *Rout) QuestGetByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
 		var q db.Quest
-		name := cont.Param("name")
 		if qc, ok := rt.qCacheName.Get(name); ok {
 			result <- NewResponse(http.StatusOK, "ok", qc)
 			return
@@ -222,16 +209,16 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 		u.Balance = -1
 		u.Name = ""
 		if err := cont.BindJSON(&u); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		id, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type json", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if err = u.UpdateDatabaseById(id, rt.db); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error sql execution", nil)
+			result <- NewResponse(http.StatusBadRequest, dbError, nil)
 			return
 		}
 		rt.RemoveFromUCacheById(id)
@@ -250,12 +237,12 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 		u.Balance = -1
 		u.Name = ""
 		if err := cont.BindJSON(&u); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		name := cont.Param("name")
 		if err := u.UpdateDatabaseByName(name, rt.db); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error sql execution", nil)
+			result <- NewResponse(http.StatusBadRequest, dbError, nil)
 			return
 		}
 		rt.RemoveFromUCacheByName(name)
@@ -275,16 +262,16 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 		q.Cost = -1
 		q.Name = ""
 		if err := cont.BindJSON(&q); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		id, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if err = q.UpdateDatabaseById(id, rt.db); err != nil {
-			result <- NewResponse(http.StatusConflict, "error sql execution", nil)
+			result <- NewResponse(http.StatusConflict, dbError, nil)
 			return
 		}
 		rt.UpdateQCachesById(q, id)
@@ -303,12 +290,12 @@ func (rt *Rout) QuestPutByName(cont *gin.Context) {
 		q.Cost = -1
 		q.Name = ""
 		if err := cont.BindJSON(&q); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
+			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
 		name := cont.Param("name")
 		if err := q.UpdateDatabaseByName(name, rt.db); err != nil {
-			result <- NewResponse(http.StatusConflict, "error sql execution", nil)
+			result <- NewResponse(http.StatusConflict, dbError, nil)
 			return
 		}
 		rt.UpdateQCachesByName(q, name)
@@ -323,11 +310,11 @@ func (rt *Rout) UserDeleteById(cont *gin.Context) {
 	go func() {
 		id, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if err = db.RemoveUserFromDatabaseById(id, rt.db); err != nil {
-			result <- NewResponse(http.StatusConflict, "error param type", nil)
+			result <- NewResponse(http.StatusConflict, paramError, nil)
 			return
 		}
 		if u, ok := rt.uCacheId.Get(id); ok {
@@ -345,7 +332,7 @@ func (rt *Rout) UserDeleteByName(cont *gin.Context) {
 	go func() {
 		name := cont.Param("name")
 		if err := db.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if u, ok := rt.uCacheName.Get(name); ok {
@@ -363,11 +350,11 @@ func (rt *Rout) QuestDeleteById(cont *gin.Context) {
 	go func() {
 		id, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if err = db.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if q, ok := rt.qCacheId.Get(id); ok {
@@ -385,7 +372,7 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 	go func() {
 		name := cont.Param("name")
 		if err := db.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
-			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		if q, ok := rt.qCacheName.Get(name); ok {
@@ -403,13 +390,13 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 		var event db.Event
 		userId, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
-			result <- NewEventResponse(http.StatusBadRequest, "error param type", nil)
+			result <- NewEventResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
 		event.UserId = userId
 		res, err := event.GetByUser(rt.db)
 		if err != nil {
-			result <- NewEventResponse(http.StatusConflict, "error user_id", nil)
+			result <- NewEventResponse(http.StatusConflict, userIdError, nil)
 			return
 		}
 		result <- NewEventResponse(http.StatusOK, "ok", res)
@@ -422,6 +409,36 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 	}
 }
 
+func (rt *Rout) GetUser(cont *gin.Context) {
+	if param, ok := cont.GetQuery("id"); ok {
+		id, err := strconv.Atoi(param)
+		if err != nil {
+			cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
+			return
+		}
+		rt.UserGetById(cont, id)
+	} else if param, ok = cont.GetQuery("name"); ok {
+		rt.UserGetByName(cont, param)
+	} else {
+		cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
+	}
+}
+
+func (rt *Rout) GetQuest(cont *gin.Context) {
+	if param, ok := cont.GetQuery("id"); ok {
+		id, err := strconv.Atoi(param)
+		if err != nil {
+			cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
+			return
+		}
+		rt.QuestGetById(cont, id)
+	} else if param, ok = cont.GetQuery("name"); ok {
+		rt.QuestGetByName(cont, param)
+	} else {
+		cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
+	}
+}
+
 func HttpServer() {
 	rout := NewRout(gin.Default(), db.NewConn())
 
@@ -429,10 +446,12 @@ func HttpServer() {
 	rout.router.POST("/quests", rout.QuestPost)
 	rout.router.POST("/event", rout.EventPost)
 
-	rout.router.GET("/users/id/:id", rout.UserGetById)
-	rout.router.GET("/users/name/:name", rout.UserGetByName)
-	rout.router.GET("/quests/id/:id", rout.QuestGetById)
-	rout.router.GET("/quests/name/:name", rout.QuestGetByName)
+	//rout.router.GET("/users/id/:id", rout.UserGetById)
+	rout.router.GET("/users", rout.GetUser)
+	rout.router.GET("/quests", rout.GetQuest)
+	//rout.router.GET("/users/name/:name", rout.UserGetByName)
+	//rout.router.GET("/quests/id/:id", rout.QuestGetById)
+	//rout.router.GET("/quests/name/:name", rout.QuestGetByName)
 	rout.router.GET("/events/user_id/:id", rout.EventsGetByUserId)
 
 	rout.router.PUT("/users/id/:id", rout.UserPutById)
