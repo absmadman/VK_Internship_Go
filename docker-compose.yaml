@@ -10,8 +10,8 @@ services:
       - POSTGRES_DB=api_db
     image: postgres:14.3-alpine
     volumes:
-      - ./sql/pgdata:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
   server:
     container_name: server
     build:

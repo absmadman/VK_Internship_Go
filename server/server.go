@@ -1,67 +1,19 @@
 package server
 
 import (
-	sqlpkg "VK_Internship_Go/sql"
-	"database/sql"
+	"VK_Internship_Go/db"
 	"github.com/gin-gonic/gin"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 )
-
-type Item interface {
-	AppendDatabase(db *sql.DB) error
-	UpdateDatabaseById(id int, db *sql.DB) error
-	GetById(id int, db *sql.DB) error
-	GetByName(name string, db *sql.DB) error
-}
-
-type Resp struct {
-	code int
-	msg  string
-	item Item
-}
-
-type EventResp struct {
-	code  int
-	msg   string
-	event *sqlpkg.EventResponse
-}
-
-type Rout struct {
-	router     *gin.Engine
-	db         *sql.DB
-	uCacheId   *lru.Cache[int, *sqlpkg.User]
-	qCacheId   *lru.Cache[int, *sqlpkg.Quest]
-	uCacheName *lru.Cache[string, *sqlpkg.User]
-	qCacheName *lru.Cache[string, *sqlpkg.Quest]
-	mu         sync.Mutex
-}
-
-func NewEventResponse(code int, msg string, event *sqlpkg.EventResponse) *EventResp {
-	return &EventResp{
-		code:  code,
-		msg:   msg,
-		event: event,
-	}
-}
-
-func NewResponse(code int, msg string, item Item) *Resp {
-	return &Resp{
-		code: code,
-		msg:  msg,
-		item: item,
-	}
-}
 
 func (rt *Rout) UserPost(cont *gin.Context) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var u sqlpkg.User
+		var u db.User
 		if err := cont.BindJSON(&u); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
 			return
@@ -115,7 +67,7 @@ func (rt *Rout) QuestPost(cont *gin.Context) {
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var q sqlpkg.Quest
+		var q db.Quest
 		if err := cont.BindJSON(&q); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
 			return
@@ -142,7 +94,7 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var e sqlpkg.Event
+		var e db.Event
 		if err := cont.BindJSON(&e); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error binding json", nil)
 			return
@@ -153,7 +105,7 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 		} else {
 			result <- NewResponse(http.StatusCreated, "ok", nil)
 		}
-		u := sqlpkg.User{
+		u := db.User{
 			Id:      e.UserId,
 			Name:    "",
 			Balance: e.UserBalance,
@@ -167,7 +119,7 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 func (rt *Rout) QuestGetById(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
-		var q sqlpkg.Quest
+		var q db.Quest
 		id, err := strconv.Atoi(cont.Param("id"))
 		if qc, ok := rt.qCacheId.Get(id); ok {
 			result <- NewResponse(http.StatusOK, "ok", qc)
@@ -193,7 +145,7 @@ func (rt *Rout) QuestGetById(cont *gin.Context) {
 func (rt *Rout) UserGetById(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
-		var u sqlpkg.User
+		var u db.User
 		id, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
@@ -220,7 +172,7 @@ func (rt *Rout) UserGetById(cont *gin.Context) {
 func (rt *Rout) UserGetByName(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
-		var u sqlpkg.User
+		var u db.User
 		name := cont.Param("name")
 		if uc, ok := rt.uCacheName.Get(name); ok {
 			result <- NewResponse(http.StatusOK, "ok", uc)
@@ -242,7 +194,7 @@ func (rt *Rout) UserGetByName(cont *gin.Context) {
 func (rt *Rout) QuestGetByName(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
-		var q sqlpkg.Quest
+		var q db.Quest
 		name := cont.Param("name")
 		if qc, ok := rt.qCacheName.Get(name); ok {
 			result <- NewResponse(http.StatusOK, "ok", qc)
@@ -261,31 +213,12 @@ func (rt *Rout) QuestGetByName(cont *gin.Context) {
 	}
 }
 
-func NewRout(g *gin.Engine, d *sql.DB) *Rout {
-	//cacheSize, err := strconv.Atoi(os.Getenv("SERVER_CACHE_SIZE"))
-	//if {
-
-	//}
-	ucId, _ := lru.New[int, *sqlpkg.User](128)
-	qcId, _ := lru.New[int, *sqlpkg.Quest](128)
-	ucName, _ := lru.New[string, *sqlpkg.User](128)
-	qcName, _ := lru.New[string, *sqlpkg.Quest](128)
-	return &Rout{
-		router:     g,
-		db:         d,
-		uCacheId:   ucId,
-		qCacheId:   qcId,
-		uCacheName: ucName,
-		qCacheName: qcName,
-	}
-}
-
 func (rt *Rout) UserPutById(cont *gin.Context) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var u sqlpkg.User
+		var u db.User
 		u.Balance = -1
 		u.Name = ""
 		if err := cont.BindJSON(&u); err != nil {
@@ -301,73 +234,11 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, "error sql execution", nil)
 			return
 		}
-		rt.UpdateUCachesById(u, id)
+		rt.RemoveFromUCacheById(id)
 		result <- NewResponse(http.StatusOK, "ok", nil)
 	}()
 	resp := <-result
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
-}
-
-func AssignmentUsersForUpdateCache(dst *sqlpkg.User, src sqlpkg.User) {
-	if src.Balance >= 0 {
-		dst.Balance = src.Balance
-	}
-	if src.Name != "" {
-		dst.Name = src.Name
-	}
-}
-
-func (rt *Rout) UpdateUCachesByName(u sqlpkg.User, name string) {
-	uc, ok := rt.uCacheName.Get(name)
-	if ok {
-		AssignmentUsersForUpdateCache(uc, u)
-		rt.uCacheName.Remove(name)
-		rt.uCacheName.Add(name, uc)
-		rt.uCacheId.Remove(u.Id)
-		rt.uCacheId.Add(u.Id, uc)
-	}
-}
-
-func (rt *Rout) UpdateUCachesById(u sqlpkg.User, id int) {
-	uc, ok := rt.uCacheId.Get(id)
-	if ok {
-		AssignmentUsersForUpdateCache(uc, u)
-		rt.uCacheId.Remove(id)
-		rt.uCacheId.Add(id, uc)
-		rt.uCacheName.Remove(uc.Name)
-		rt.uCacheName.Add(uc.Name, uc)
-	}
-}
-
-func AssignmentQuestsForUpdateCache(dst *sqlpkg.Quest, src sqlpkg.Quest) {
-	if src.Cost >= 0 {
-		dst.Cost = src.Cost
-	}
-	if src.Name != "" {
-		dst.Name = src.Name
-	}
-}
-
-func (rt *Rout) UpdateQCachesByName(q sqlpkg.Quest, name string) {
-	qc, ok := rt.qCacheName.Get(name)
-	if ok {
-		AssignmentQuestsForUpdateCache(qc, q)
-		rt.qCacheName.Remove(name)
-		rt.qCacheName.Add(name, qc)
-		rt.qCacheId.Remove(q.Id)
-		rt.qCacheId.Add(q.Id, qc)
-	}
-}
-
-func (rt *Rout) UpdateQCachesById(q sqlpkg.Quest, id int) {
-	qc, ok := rt.qCacheId.Get(id)
-	if ok {
-		AssignmentQuestsForUpdateCache(qc, q)
-		rt.qCacheId.Remove(id)
-		rt.qCacheId.Add(id, qc)
-		rt.qCacheName.Remove(qc.Name)
-		rt.qCacheName.Add(qc.Name, qc)
-	}
 }
 
 func (rt *Rout) UserPutByName(cont *gin.Context) {
@@ -375,7 +246,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var u sqlpkg.User
+		var u db.User
 		u.Balance = -1
 		u.Name = ""
 		if err := cont.BindJSON(&u); err != nil {
@@ -387,7 +258,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, "error sql execution", nil)
 			return
 		}
-		rt.UpdateUCachesByName(u, name)
+		rt.RemoveFromUCacheByName(name)
 		result <- NewResponse(http.StatusOK, "ok", &u)
 	}()
 	resp := <-result
@@ -400,7 +271,7 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var q sqlpkg.Quest
+		var q db.Quest
 		q.Cost = -1
 		q.Name = ""
 		if err := cont.BindJSON(&q); err != nil {
@@ -428,7 +299,7 @@ func (rt *Rout) QuestPutByName(cont *gin.Context) {
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
-		var q sqlpkg.Quest
+		var q db.Quest
 		q.Cost = -1
 		q.Name = ""
 		if err := cont.BindJSON(&q); err != nil {
@@ -455,7 +326,7 @@ func (rt *Rout) UserDeleteById(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
 			return
 		}
-		if err = sqlpkg.RemoveUserFromDatabaseById(id, rt.db); err != nil {
+		if err = db.RemoveUserFromDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusConflict, "error param type", nil)
 			return
 		}
@@ -473,7 +344,7 @@ func (rt *Rout) UserDeleteByName(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
 		name := cont.Param("name")
-		if err := sqlpkg.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
+		if err := db.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
 			return
 		}
@@ -495,7 +366,7 @@ func (rt *Rout) QuestDeleteById(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
 			return
 		}
-		if err = sqlpkg.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
+		if err = db.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
 			return
 		}
@@ -513,7 +384,7 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
 		name := cont.Param("name")
-		if err := sqlpkg.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
+		if err := db.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, "error param type", nil)
 			return
 		}
@@ -529,7 +400,7 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 	result := make(chan *EventResp)
 	go func() {
-		var event sqlpkg.Event
+		var event db.Event
 		userId, err := strconv.Atoi(cont.Param("id"))
 		if err != nil {
 			result <- NewEventResponse(http.StatusBadRequest, "error param type", nil)
@@ -552,7 +423,7 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 }
 
 func HttpServer() {
-	rout := NewRout(gin.Default(), sqlpkg.NewConn())
+	rout := NewRout(gin.Default(), db.NewConn())
 
 	rout.router.POST("/users", rout.UserPost)
 	rout.router.POST("/quests", rout.QuestPost)
