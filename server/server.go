@@ -9,8 +9,6 @@ import (
 )
 
 func (rt *Rout) UserPost(cont *gin.Context) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u db.User
@@ -63,8 +61,6 @@ func (rt *Rout) ItemReadDatabaseByName(i Item, name string, result chan<- *Resp)
 }
 
 func (rt *Rout) QuestPost(cont *gin.Context) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q db.Quest
@@ -90,8 +86,6 @@ func (rt *Rout) QuestPost(cont *gin.Context) {
 
 }
 func (rt *Rout) EventPost(cont *gin.Context) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var e db.Event
@@ -201,8 +195,6 @@ func (rt *Rout) QuestGetByName(cont *gin.Context, name string) {
 }
 
 func (rt *Rout) UserPutById(cont *gin.Context, id int) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u db.User
@@ -224,8 +216,6 @@ func (rt *Rout) UserPutById(cont *gin.Context, id int) {
 }
 
 func (rt *Rout) UserPutByName(cont *gin.Context, name string) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var u db.User
@@ -248,8 +238,6 @@ func (rt *Rout) UserPutByName(cont *gin.Context, name string) {
 }
 
 func (rt *Rout) QuestPutById(cont *gin.Context, id int) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q db.Quest
@@ -271,8 +259,6 @@ func (rt *Rout) QuestPutById(cont *gin.Context, id int) {
 }
 
 func (rt *Rout) QuestPutByName(cont *gin.Context, name string) {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
 	result := make(chan *Resp)
 	go func() {
 		var q db.Quest
@@ -434,21 +420,16 @@ func (rt *Rout) DeleteQuest(cont *gin.Context) {
 
 func HttpServer() {
 	rout := NewRout(gin.Default(), db.NewConn())
-
 	rout.router.POST("/users", rout.UserPost)
 	rout.router.POST("/quests", rout.QuestPost)
 	rout.router.POST("/event", rout.EventPost)
-
 	rout.router.GET("/users", rout.GetUser)
 	rout.router.GET("/quests", rout.GetQuest)
 	rout.router.GET("/events", rout.GetEvent)
-
 	rout.router.PUT("/quests", rout.PutQuest)
 	rout.router.PUT("/users", rout.PutUser)
-
 	rout.router.DELETE("/users", rout.DeleteUser)
 	rout.router.DELETE("/quests", rout.DeleteQuest)
-
 	err := rout.router.Run("0.0.0.0:8080")
 	if err != nil {
 		log.Println(err)

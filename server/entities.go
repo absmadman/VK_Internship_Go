@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"sync"
+	"log"
+	"os"
+	"strconv"
 )
 
 type Item interface {
@@ -34,7 +36,6 @@ type Rout struct {
 	qCacheId   *lru.Cache[int, *db.Quest]
 	uCacheName *lru.Cache[string, *db.User]
 	qCacheName *lru.Cache[string, *db.Quest]
-	mu         sync.Mutex
 }
 
 func NewEventResponse(code int, msg string, event *db.EventResponse) *EventResp {
@@ -54,14 +55,14 @@ func NewResponse(code int, msg string, item Item) *Resp {
 }
 
 func NewRout(g *gin.Engine, d *sql.DB) *Rout {
-	//cacheSize, err := strconv.Atoi(os.Getenv("SERVER_CACHE_SIZE"))
-	//if {
-
-	//}
-	ucId, _ := lru.New[int, *db.User](128)
-	qcId, _ := lru.New[int, *db.Quest](128)
-	ucName, _ := lru.New[string, *db.User](128)
-	qcName, _ := lru.New[string, *db.Quest](128)
+	cacheSize, err := strconv.Atoi(os.Getenv("SERVER_CACHE_SIZE"))
+	if err != nil {
+		log.Println("Invalid env type for SERVER_CACHE_SIZE")
+	}
+	ucId, _ := lru.New[int, *db.User](cacheSize)
+	qcId, _ := lru.New[int, *db.Quest](cacheSize)
+	ucName, _ := lru.New[string, *db.User](cacheSize)
+	qcName, _ := lru.New[string, *db.Quest](cacheSize)
 	return &Rout{
 		router:     g,
 		db:         d,

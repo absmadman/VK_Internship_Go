@@ -22,11 +22,6 @@ services:
     image: server:latest
     links:
       - postgres
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_USER=server
-      - POSTGRES_PASSWORD=server
-      - POSTGRES_DB=api_db
-      - SERVER_CACHE_SIZE=128
+    env_file: .env
 volumes:
   pgdata:
