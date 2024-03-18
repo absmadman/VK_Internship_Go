@@ -200,7 +200,7 @@ func (rt *Rout) QuestGetByName(cont *gin.Context, name string) {
 	}
 }
 
-func (rt *Rout) UserPutById(cont *gin.Context) {
+func (rt *Rout) UserPutById(cont *gin.Context, id int) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
@@ -212,12 +212,7 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
-		id, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, paramError, nil)
-			return
-		}
-		if err = u.UpdateDatabaseById(id, rt.db); err != nil {
+		if err := u.UpdateDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, dbError, nil)
 			return
 		}
@@ -228,7 +223,7 @@ func (rt *Rout) UserPutById(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) UserPutByName(cont *gin.Context) {
+func (rt *Rout) UserPutByName(cont *gin.Context, name string) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
@@ -240,7 +235,6 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
-		name := cont.Param("name")
 		if err := u.UpdateDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, dbError, nil)
 			return
@@ -253,7 +247,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context) {
 
 }
 
-func (rt *Rout) QuestPutById(cont *gin.Context) {
+func (rt *Rout) QuestPutById(cont *gin.Context, id int) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
@@ -265,12 +259,7 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
-		id, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, paramError, nil)
-			return
-		}
-		if err = q.UpdateDatabaseById(id, rt.db); err != nil {
+		if err := q.UpdateDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusConflict, dbError, nil)
 			return
 		}
@@ -281,7 +270,7 @@ func (rt *Rout) QuestPutById(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) QuestPutByName(cont *gin.Context) {
+func (rt *Rout) QuestPutByName(cont *gin.Context, name string) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	result := make(chan *Resp)
@@ -293,7 +282,6 @@ func (rt *Rout) QuestPutByName(cont *gin.Context) {
 			result <- NewResponse(http.StatusBadRequest, bindingError, nil)
 			return
 		}
-		name := cont.Param("name")
 		if err := q.UpdateDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusConflict, dbError, nil)
 			return
@@ -305,15 +293,10 @@ func (rt *Rout) QuestPutByName(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) UserDeleteById(cont *gin.Context) {
+func (rt *Rout) UserDeleteById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
-		id, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, paramError, nil)
-			return
-		}
-		if err = db.RemoveUserFromDatabaseById(id, rt.db); err != nil {
+		if err := db.RemoveUserFromDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusConflict, paramError, nil)
 			return
 		}
@@ -327,10 +310,9 @@ func (rt *Rout) UserDeleteById(cont *gin.Context) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) UserDeleteByName(cont *gin.Context) {
+func (rt *Rout) UserDeleteByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
-		name := cont.Param("name")
 		if err := db.RemoveUserFromDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
@@ -345,15 +327,10 @@ func (rt *Rout) UserDeleteByName(cont *gin.Context) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) QuestDeleteById(cont *gin.Context) {
+func (rt *Rout) QuestDeleteById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
-		id, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewResponse(http.StatusBadRequest, paramError, nil)
-			return
-		}
-		if err = db.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
+		if err := db.RemoveQuestFromDatabaseById(id, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
 		}
@@ -367,10 +344,9 @@ func (rt *Rout) QuestDeleteById(cont *gin.Context) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
+func (rt *Rout) QuestDeleteByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
-		name := cont.Param("name")
 		if err := db.RemoveQuestFromDatabaseByName(name, rt.db); err != nil {
 			result <- NewResponse(http.StatusBadRequest, paramError, nil)
 			return
@@ -384,15 +360,10 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
-func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
+func (rt *Rout) EventsGetByUserId(cont *gin.Context, userId int) {
 	result := make(chan *EventResp)
 	go func() {
 		var event db.Event
-		userId, err := strconv.Atoi(cont.Param("id"))
-		if err != nil {
-			result <- NewEventResponse(http.StatusBadRequest, paramError, nil)
-			return
-		}
 		event.UserId = userId
 		res, err := event.GetByUser(rt.db)
 		if err != nil {
@@ -409,34 +380,56 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context) {
 	}
 }
 
-func (rt *Rout) GetUser(cont *gin.Context) {
+func (rt *Rout) Wrapper(cont *gin.Context, f1 func(cont *gin.Context, id int), f2 func(cont *gin.Context, name string)) {
 	if param, ok := cont.GetQuery("id"); ok {
 		id, err := strconv.Atoi(param)
 		if err != nil {
 			cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
 			return
 		}
-		rt.UserGetById(cont, id)
+		f1(cont, id)
 	} else if param, ok = cont.GetQuery("name"); ok {
-		rt.UserGetByName(cont, param)
+		f2(cont, param)
 	} else {
 		cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
 	}
 }
 
+func (rt *Rout) GetUser(cont *gin.Context) {
+	rt.Wrapper(cont, rt.UserGetById, rt.UserGetByName)
+}
+
 func (rt *Rout) GetQuest(cont *gin.Context) {
-	if param, ok := cont.GetQuery("id"); ok {
+	rt.Wrapper(cont, rt.QuestGetById, rt.QuestGetByName)
+}
+
+func (rt *Rout) PutUser(cont *gin.Context) {
+	rt.Wrapper(cont, rt.UserPutById, rt.UserPutByName)
+}
+
+func (rt *Rout) PutQuest(cont *gin.Context) {
+	rt.Wrapper(cont, rt.QuestPutById, rt.QuestPutByName)
+}
+
+func (rt *Rout) GetEvent(cont *gin.Context) {
+	if param, ok := cont.GetQuery("user_id"); ok {
 		id, err := strconv.Atoi(param)
 		if err != nil {
 			cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
 			return
 		}
-		rt.QuestGetById(cont, id)
-	} else if param, ok = cont.GetQuery("name"); ok {
-		rt.QuestGetByName(cont, param)
+		rt.EventsGetByUserId(cont, id)
 	} else {
 		cont.JSON(http.StatusBadRequest, gin.H{"message": paramError})
 	}
+}
+
+func (rt *Rout) DeleteUser(cont *gin.Context) {
+	rt.Wrapper(cont, rt.UserDeleteById, rt.UserDeleteByName)
+}
+
+func (rt *Rout) DeleteQuest(cont *gin.Context) {
+	rt.Wrapper(cont, rt.QuestDeleteById, rt.QuestDeleteByName)
 }
 
 func HttpServer() {
@@ -446,23 +439,15 @@ func HttpServer() {
 	rout.router.POST("/quests", rout.QuestPost)
 	rout.router.POST("/event", rout.EventPost)
 
-	//rout.router.GET("/users/id/:id", rout.UserGetById)
 	rout.router.GET("/users", rout.GetUser)
 	rout.router.GET("/quests", rout.GetQuest)
-	//rout.router.GET("/users/name/:name", rout.UserGetByName)
-	//rout.router.GET("/quests/id/:id", rout.QuestGetById)
-	//rout.router.GET("/quests/name/:name", rout.QuestGetByName)
-	rout.router.GET("/events/user_id/:id", rout.EventsGetByUserId)
+	rout.router.GET("/events", rout.GetEvent)
 
-	rout.router.PUT("/users/id/:id", rout.UserPutById)
-	rout.router.PUT("/users/name/:name", rout.UserPutByName)
-	rout.router.PUT("/quests/id/:id", rout.QuestPutById)
-	rout.router.PUT("/quests/name/:name", rout.QuestPutByName)
+	rout.router.PUT("/quests", rout.PutQuest)
+	rout.router.PUT("/users", rout.PutUser)
 
-	rout.router.DELETE("/users/id/:id", rout.UserDeleteById)
-	rout.router.DELETE("/users/name/:name", rout.UserDeleteByName)
-	rout.router.DELETE("/quests/id/:id", rout.QuestDeleteById)
-	rout.router.DELETE("/quests/name/:name", rout.QuestDeleteByName)
+	rout.router.DELETE("/users", rout.DeleteUser)
+	rout.router.DELETE("/quests", rout.DeleteQuest)
 
 	err := rout.router.Run("0.0.0.0:8080")
 	if err != nil {
