@@ -1,6 +1,11 @@
 # Rest API в рамках VK Internship
 REST API service implementation Go
 
+# Быстрый старт
+Для быстрого старта вам нужно иметь установленный Docker и docker-compose, перейти в корневую \
+папку проекта(VK_Internship_Go) и выполнить команду `make docker-compose-api`, проект развернется \
+и будет принимать запросы по адресу `localhost:8080`
+
 # Установка и запуск
 Проект запускается в Docker контейнере с помощью docker-compose, для удобства Makefile содержит следующие зависимости:
 

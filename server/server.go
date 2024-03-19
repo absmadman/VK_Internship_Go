@@ -360,6 +360,7 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context, name string) {
 			rt.qCacheId.Remove(q.Id)
 			rt.qCacheName.Remove(name)
 		}
+		result <- NewResponse(http.StatusOK, "ok", nil)
 	}()
 	resp := <-result
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
@@ -443,7 +444,7 @@ func HttpServer() {
 	rout := NewRout(gin.Default(), db.NewConn())
 	rout.router.POST("/users", rout.UserPost)
 	rout.router.POST("/quests", rout.QuestPost)
-	rout.router.POST("/event", rout.EventPost)
+	rout.router.POST("/events", rout.EventPost)
 	rout.router.GET("/users", rout.GetUser)
 	rout.router.GET("/quests", rout.GetQuest)
 	rout.router.GET("/events", rout.GetEvent)

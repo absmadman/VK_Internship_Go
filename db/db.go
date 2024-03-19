@@ -312,12 +312,13 @@ func RemoveQuestFromDatabaseById(id int, db *sql.DB) error {
 }
 
 func RemoveQuestFromDatabaseByName(name string, db *sql.DB) error {
+	fmt.Println("WE ARE HERE")
 	res, err := db.Exec(deleteQByName, name)
 	if err != nil {
 		return err
 	}
 	if val, _ := res.RowsAffected(); val == 0 {
-		return err
+		return errors.New("Statement with no affect")
 	}
 	return nil
 }
