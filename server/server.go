@@ -8,6 +8,7 @@ import (
 	"strconv"
 )
 
+// Добавляет юзера в базу данных
 func (rt *Rout) UserPost(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
@@ -33,6 +34,7 @@ func (rt *Rout) UserPost(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Добавление в базу данных какого либо Item'a
 func (rt *Rout) ItemAppendDatabase(i Item, result chan<- *Resp) error {
 	if err := i.AppendDatabase(rt.db); err != nil {
 		result <- NewResponse(http.StatusConflict, dbError, nil)
@@ -42,6 +44,7 @@ func (rt *Rout) ItemAppendDatabase(i Item, result chan<- *Resp) error {
 	return nil
 }
 
+// Чтение какой либо таблицы по id
 func (rt *Rout) ItemReadDatabaseById(i Item, id int, result chan<- *Resp) error {
 	if err := i.GetById(id, rt.db); err != nil {
 		result <- NewResponse(http.StatusBadRequest, bindingError, nil)
@@ -51,6 +54,7 @@ func (rt *Rout) ItemReadDatabaseById(i Item, id int, result chan<- *Resp) error 
 	return nil
 }
 
+// Чтение какой либо таблицы по имени
 func (rt *Rout) ItemReadDatabaseByName(i Item, name string, result chan<- *Resp) error {
 	if err := i.GetByName(name, rt.db); err != nil {
 		result <- NewResponse(http.StatusBadRequest, bindingError, nil)
@@ -60,6 +64,7 @@ func (rt *Rout) ItemReadDatabaseByName(i Item, name string, result chan<- *Resp)
 	return nil
 }
 
+// Кладет задание в базу данных
 func (rt *Rout) QuestPost(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
@@ -85,6 +90,8 @@ func (rt *Rout) QuestPost(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 
 }
+
+// Кладет ивент в базу данных
 func (rt *Rout) EventPost(cont *gin.Context) {
 	result := make(chan *Resp)
 	go func() {
@@ -110,6 +117,7 @@ func (rt *Rout) EventPost(cont *gin.Context) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Получение задания по id
 func (rt *Rout) QuestGetById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -131,6 +139,7 @@ func (rt *Rout) QuestGetById(cont *gin.Context, id int) {
 	}
 }
 
+// Получение пользователя по id
 func (rt *Rout) UserGetById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -152,6 +161,7 @@ func (rt *Rout) UserGetById(cont *gin.Context, id int) {
 	}
 }
 
+// Получение пользователя по имени
 func (rt *Rout) UserGetByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -173,6 +183,7 @@ func (rt *Rout) UserGetByName(cont *gin.Context, name string) {
 	}
 }
 
+// Получение задания по имени
 func (rt *Rout) QuestGetByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -194,6 +205,7 @@ func (rt *Rout) QuestGetByName(cont *gin.Context, name string) {
 	}
 }
 
+// Обновляет пользователя по id
 func (rt *Rout) UserPutById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -215,6 +227,7 @@ func (rt *Rout) UserPutById(cont *gin.Context, id int) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Обновляет пользователя по имени
 func (rt *Rout) UserPutByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -237,6 +250,7 @@ func (rt *Rout) UserPutByName(cont *gin.Context, name string) {
 
 }
 
+// Функция обновления задания по id
 func (rt *Rout) QuestPutById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -258,6 +272,7 @@ func (rt *Rout) QuestPutById(cont *gin.Context, id int) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция обновления задания по имени
 func (rt *Rout) QuestPutByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -279,6 +294,7 @@ func (rt *Rout) QuestPutByName(cont *gin.Context, name string) {
 	cont.JSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция удаления пользователя по id
 func (rt *Rout) UserDeleteById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -296,6 +312,7 @@ func (rt *Rout) UserDeleteById(cont *gin.Context, id int) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция удаления пользователя по его имени
 func (rt *Rout) UserDeleteByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -313,6 +330,7 @@ func (rt *Rout) UserDeleteByName(cont *gin.Context, name string) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция удаления задания по его id
 func (rt *Rout) QuestDeleteById(cont *gin.Context, id int) {
 	result := make(chan *Resp)
 	go func() {
@@ -330,6 +348,7 @@ func (rt *Rout) QuestDeleteById(cont *gin.Context, id int) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция удаления задания по его имени
 func (rt *Rout) QuestDeleteByName(cont *gin.Context, name string) {
 	result := make(chan *Resp)
 	go func() {
@@ -346,6 +365,7 @@ func (rt *Rout) QuestDeleteByName(cont *gin.Context, name string) {
 	cont.IndentedJSON(resp.code, gin.H{"message": resp.msg})
 }
 
+// Функция получения ивента по user_id
 func (rt *Rout) EventsGetByUserId(cont *gin.Context, userId int) {
 	result := make(chan *EventResp)
 	go func() {
@@ -366,6 +386,7 @@ func (rt *Rout) EventsGetByUserId(cont *gin.Context, userId int) {
 	}
 }
 
+// Функция для проверки корректности введенных параметров и вызова функций обработчиков
 func (rt *Rout) Wrapper(cont *gin.Context, f1 func(cont *gin.Context, id int), f2 func(cont *gin.Context, name string)) {
 	if param, ok := cont.GetQuery("id"); ok {
 		id, err := strconv.Atoi(param)
